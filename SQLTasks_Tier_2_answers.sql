@@ -87,7 +87,7 @@ Include in your output the name of the court, and the name of the member
 formatted as a single column. Ensure no duplicate data, and order by
 the member name. */
 
-select name, distinct concat(m.surname,"", m.firstname) as 	membername
+select distinct name, concat_ws(' ', m.surname, m.firstname) as 	membername
 from Bookings as b
 	inner join Members as m
 		on b.memid = m.memid
@@ -103,7 +103,7 @@ the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
 
-select b.memid as memberid, name, firstname, surname, 
+select concat_ws(' ', m.firstname, m.surname) as fullname, b.memid as memberid, name as facility_name,  
 	case when b.memid = 0 then guestcost 
 		else membercost
 	End cost
@@ -115,13 +115,13 @@ from Bookings as b
 where year(starttime) = 2012 and month(starttime)= 09 and day(starttime) = 14 and
 	(membercost > 30 or guestcost > 30)
 group by memberid
-order by memberid;
+order by fullname;
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
 
-select name, firstname, surname, cost
+select facility_name, fullname, cost
 
-from (select b.memid as memberid, name, firstname, surname, starttime,
+from (select concat_ws(' ', firstname, surname) as fullname, b.memid as memberid, name as facility_name, starttime,
 		case when b.memid = 0 then guestcost 
 			else membercost
 		End cost
@@ -171,38 +171,11 @@ def sql_to_df(database, query):
     conn.close() # closes the connection
     
     return df   
-    
 
 query = "select name, sum(r.cost) as revenue \
     from (select name, case when m.memid =0 then f.guestcost \
                 else f.membercost \
-            end cost \def sql_to_df(database, query):
-    conn=sqlite3.connect(database) # connects to database
-    cursor = conn.cursor()
-    
-    cursor.execute(query) # executes query
-    
-    results = cursor.fetchall() # retrieves all of the rows of the query
-    
-    df=pd.DataFrame(results) # converts the query into a data frame
-    
-    # collects the column names from the queries and assigns those names to the column of the dataframe
-    colname=[]
-    
-    for col in cursor.description: # creates a list for the column names
-        colname.append(col[0])
-        
-    colname_dict={}
-    
-    for ent in range(len(cursor.description)): # creates a dictionary with the column numbers as the index
-        colname_dict[ent]=colname[ent]
-        
-    df.rename(colname_dict, axis=1, inplace=True) # renames the dataframe columns with the columns for the sql table
-    
-    conn.close() # closes the connection
-    
-    return df   
-    
+            end cost \
     from Bookings as b \
                    left join Facilities as f \
         on b.facid = f.facid \
@@ -214,9 +187,9 @@ query = "select name, sum(r.cost) as revenue \
 
 database='sqlite_db_pythonsqlite.db'
 
-query10=sql_to_df(database, query)
+q10=sql_to_df(database, query)
 
-query10.head()
+q10.head()
 
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
 
